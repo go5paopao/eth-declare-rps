@@ -11,52 +11,79 @@ contract rps{
     uint8 guestHand;
     uint betAmount;
 
+    // call when host player game makes
+    // set hostplayer address, betAmount, and hashValue for hand check
     constructor (bytes32 hashValue) public payable {
         hostPlayer = msg.sender;
         betAmount = msg.value;
+        _setHostHash(hashValue);
     }
 
-    function joinGame() public payable{
+    // call when guest player join the game maked by host player
+    // 1. set guestplayer address and guest hashvalue for hand check
+    // 2. check the hash value by hand and rndStr
+    function joinGame(bytes32 hashValue, uint8 hand, string rndStr) public payable{
         require(msg.sender != hostPlayer); // cannot play with same player
         require(msg.value == betAmount); // need same bet amount with host
-        require(address(this).balance == betAmount*2);
         guestPlayer = msg.sender;
         matching = true;
+        _setGuestHash(hashValue);
+        if( _checkGuestHand(hand, rndStr)){
+            guestHand = hand;
+        }
+        else {
+            result = 1; //Guest lose
+        }
+    }
+
+    // call when host player confirm and submit hand
+    // 1. check the hash value by hand and rndStr
+    // 2. rps battle (host hand and guest hand)
+    // 3. money move (loser to winner)
+    function hostSubmitAndResult(uint8 hand, string rndStr) public{
+        require(msg.sender == hostPlayer);
+        if (_checkHostHand(hand, rndStr)){
+            hostHand = hand;
+        }
+        else{
+            result = 2; //Host lose
+        }
+        if (result == 0){
+            _rpsBattle;
+        }
+        _moneyMove();
     }
  
-    function setHostHash(bytes32 hashValue) public {
-        require(msg.sender == hostPlayer);
-        require(matching);
+    function _setHostHash(bytes32 hashValue) private {
+        require(!matching);
         hostSelectHash = hashValue;
     }
 
-    function setGuestHash(bytes32 hashValue) public {
+    function _setGuestHash(bytes32 hashValue) private returns(bool){
         require(msg.sender == guestPlayer);
         require(matching);
         guestSelectHash = hashValue;
     }
 
-    function submitHostHand(uint8 hand, string rndStr) public {
-        require(msg.sender == hostPlayer);
+    function _checkHostHand(uint8 hand, string rndStr) private view returns(bool){
         bytes memory concatStr = _concat(bytes32(hand),_stringToBytes32(rndStr));
         bytes32 submitHash = sha256(concatStr);
         if (submitHash != hostSelectHash){
-            result = 1;
+            return false;
         }
-        hostHand = hand;
+        return true;
     }
 
-    function submitGuestHand(uint8 hand, string rndStr) public {
-        require(msg.sender == guestPlayer);
+    function _checkGuestHand(uint8 hand, string rndStr) private view returns(bool){
         bytes memory concatStr = _concat(bytes32(hand),_stringToBytes32(rndStr));
         bytes32 submitHash = sha256(concatStr);
         if (submitHash != guestSelectHash){
-            result = 2;
+            return false;
         }
-        guestHand = hand;
+        return true;
     }
 
-    function rpsBattle() private {
+    function _rpsBattle() private {
         int diff = hostHand - guestHand;
         // draw
         if (diff == 0){
