@@ -1,6 +1,7 @@
 pragma solidity ^0.4.22;
 
 contract rps{
+    address owner;
     address hostPlayer;
     address guestPlayer;
     bool matching = false; //after matching, true
@@ -11,9 +12,13 @@ contract rps{
     uint8 guestHand;
     uint betAmount;
 
+    constructor () public{
+        owner = msg.sender;
+    }
+
     // call when host player game makes
     // set hostplayer address, betAmount, and hashValue for hand check
-    constructor (bytes32 hashValue) public payable {
+    function makeGame(bytes32 hashValue) public payable {
         hostPlayer = msg.sender;
         betAmount = msg.value;
         _setHostHash(hashValue);
