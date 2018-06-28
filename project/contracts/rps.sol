@@ -8,9 +8,14 @@ contract rps{
     uint8 result = 0; //0:not yet 1:win host 2:win guest 3:draw 
     bytes32 hostSelectHash;
     bytes32 guestSelectHash;
+    bytes32 hostSubmitHash;
+    bytes32 guestSubmitHash;
     uint8 hostHand;
     uint8 guestHand;
     uint betAmount;
+
+    event HostSubmit(uint8 hand, string rndStr, bytes32 hash);
+    event GuestSubmit(uint8 hand, string rndStr, bytes32 hash);
 
     constructor () public{
         owner = msg.sender;
@@ -58,6 +63,14 @@ contract rps{
         }
         _moneyMove();
     }
+
+    function getHostSubmitHash() public view returns(bytes32){
+        return hostSubmitHash;
+    }
+
+    function getGuestSubmitHash() public view returns(bytes32){
+        return guestSubmitHash;
+    }
  
     function _setHostHash(bytes32 hashValue) private {
         require(!matching);
@@ -72,8 +85,9 @@ contract rps{
 
     function _checkHostHand(uint8 hand, string rndStr) private view returns(bool){
         bytes memory concatStr = _concat(bytes32(hand),_stringToBytes32(rndStr));
-        bytes32 submitHash = sha256(concatStr);
-        if (submitHash != hostSelectHash){
+        hostSubmitHash = sha256(concatStr);
+        HostSubmit(hand, rndStr, hostSubmitHash);
+        if (hostSubmitHash != hostSelectHash){
             return false;
         }
         return true;
@@ -81,8 +95,9 @@ contract rps{
 
     function _checkGuestHand(uint8 hand, string rndStr) private view returns(bool){
         bytes memory concatStr = _concat(bytes32(hand),_stringToBytes32(rndStr));
-        bytes32 submitHash = sha256(concatStr);
-        if (submitHash != guestSelectHash){
+        guestSubmitHash = sha256(concatStr);
+        GuestSubmit(hand, rndStr, guestSubmitHash);
+        if (guestSubmitHash != guestSelectHash){
             return false;
         }
         return true;
