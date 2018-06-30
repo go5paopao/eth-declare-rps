@@ -5,11 +5,15 @@
     <script src="https://cdn.rawgit.com/ethereum/web3.js/0.19.0/dist/web3.min.js" charset="UTF-8"></script>
     <script src="../jsSHA/src/sha256.js" charset="UTF-8"></script>
     <script>
-      var web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
-      var coinbase = web3.eth.coinbase;
-var abi = JSON.parse('[{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":false,"name":"hand","type":"uint8"},{"indexed":false,"name":"rndStr","type":"string"},{"indexed":false,"name":"hash","type":"bytes32"}],"name":"HostSubmit","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"hand","type":"uint8"},{"indexed":false,"name":"rndStr","type":"string"},{"indexed":false,"name":"hash","type":"bytes32"}],"name":"GuestSubmit","type":"event"},{"constant":false,"inputs":[{"name":"hashValue","type":"bytes32"}],"name":"makeGame","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":false,"inputs":[{"name":"hashValue","type":"bytes32"},{"name":"hand","type":"uint8"},{"name":"rndStr","type":"string"}],"name":"joinGame","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":false,"inputs":[{"name":"hand","type":"uint8"},{"name":"rndStr","type":"string"}],"name":"hostSubmitAndResult","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"getHostSubmitHash","outputs":[{"name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getGuestSubmitHash","outputs":[{"name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"}]');
-      var address = '0x19157afc93ad7458eaad5d986d8ced652f9c4213';
-      var contract = web3.eth.contract(abi).at(address);
+      const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+      const coinbase = web3.eth.coinbase;
+      //var abi = JSON.parse('[{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":false,"name":"hand","type":"uint8"},{"indexed":false,"name":"rndStr","type":"string"},{"indexed":false,"name":"hash","type":"bytes32"}],"name":"HostSubmit","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"hand","type":"uint8"},{"indexed":false,"name":"rndStr","type":"string"},{"indexed":false,"name":"hash","type":"bytes32"}],"name":"GuestSubmit","type":"event"},{"constant":false,"inputs":[{"name":"hashValue","type":"bytes32"}],"name":"makeGame","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":false,"inputs":[{"name":"hashValue","type":"bytes32"},{"name":"hand","type":"uint8"},{"name":"rndStr","type":"string"}],"name":"joinGame","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":false,"inputs":[{"name":"hand","type":"uint8"},{"name":"rndStr","type":"string"}],"name":"hostSubmitAndResult","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"getHostSubmitHash","outputs":[{"name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getGuestSubmitHash","outputs":[{"name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"}]');
+      const fs = require('fs');
+      const contractJSON = JSON.parse(fs.readFileSync('../build/contracts/rps.json'));
+      const abi = contractJSON.abi;
+      const address = contractJSON.networks.'10'.address;
+      //const address = '0x19157afc93ad7458eaad5d986d8ced652f9c4213';
+      const contract = web3.eth.contract(abi).at(address);
       var error_check;
       var hostLocalHash = "";
       var hostEthHash = "";

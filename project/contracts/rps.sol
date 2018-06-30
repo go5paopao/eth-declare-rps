@@ -77,13 +77,13 @@ contract rps{
         hostSelectHash = hashValue;
     }
 
-    function _setGuestHash(bytes32 hashValue) private returns(bool){
+    function _setGuestHash(bytes32 hashValue) private{
         require(msg.sender == guestPlayer);
         require(matching);
         guestSelectHash = hashValue;
     }
 
-    function _checkHostHand(uint8 hand, string rndStr) private view returns(bool){
+    function _checkHostHand(uint8 hand, string rndStr) private returns(bool){
         bytes memory concatStr = _concat(bytes32(hand),_stringToBytes32(rndStr));
         hostSubmitHash = sha256(concatStr);
         HostSubmit(hand, rndStr, hostSubmitHash);
@@ -93,7 +93,7 @@ contract rps{
         return true;
     }
 
-    function _checkGuestHand(uint8 hand, string rndStr) private view returns(bool){
+    function _checkGuestHand(uint8 hand, string rndStr) private returns(bool){
         bytes memory concatStr = _concat(bytes32(hand),_stringToBytes32(rndStr));
         guestSubmitHash = sha256(concatStr);
         GuestSubmit(hand, rndStr, guestSubmitHash);
