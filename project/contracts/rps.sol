@@ -6,16 +6,19 @@ contract rps{
     address guestPlayer;
     bool matching = false; //after matching, true
     uint8 result = 0; //0:not yet 1:win host 2:win guest 3:draw 
-    bytes32 hostSelectHash;
-    bytes32 guestSelectHash;
-    bytes32 hostSubmitHash;
-    bytes32 guestSubmitHash;
+    bytes32 hostClientHash;
+    bytes32 guestClientHash;
+    bytes32 hostEthHash;
+    bytes32 guestEthHash;
     uint8 hostHand;
     uint8 guestHand;
     uint betAmount;
 
     event HostSubmit(uint8 hand, string rndStr, bytes32 hash);
     event GuestSubmit(uint8 hand, string rndStr, bytes32 hash);
+    event GameResult(uint result);
+    event MoneyMove(address from, address to, uint sendAmount);
+    event MoneyBack(address to, uint backAmount);
 
     constructor () public{
         owner = msg.sender;
@@ -26,7 +29,7 @@ contract rps{
     function makeGame(bytes32 hashValue) public payable {
         hostPlayer = msg.sender;
         betAmount = msg.value;
-        _setHostHash(hashValue);
+        _setHostClientHash(hashValue);
     }
 
     // call when guest player join the game maked by host player
@@ -37,7 +40,7 @@ contract rps{
         require(msg.value == betAmount); // need same bet amount with host
         guestPlayer = msg.sender;
         matching = true;
-        _setGuestHash(hashValue);
+        _setGuestClientHash(hashValue);
         if( _checkGuestHand(hand, rndStr)){
             guestHand = hand;
         }
@@ -50,7 +53,7 @@ contract rps{
     // 1. check the hash value by hand and rndStr
     // 2. rps battle (host hand and guest hand)
     // 3. money move (loser to winner)
-    function hostSubmitAndResult(uint8 hand, string rndStr) public{
+    function hostSubmitHand(uint8 hand, string rndStr) public{
         require(msg.sender == hostPlayer);
         if (_checkHostHand(hand, rndStr)){
             hostHand = hand;
@@ -58,36 +61,49 @@ contract rps{
         else{
             result = 2; //Host lose
         }
-        if (result == 0){
-            _rpsBattle;
+        if (result == 0){ // if game result is not decided, rps battle start.
+            _rpsBattle();
         }
-        _moneyMove();
+        emit GameResult(result);
+        _moneyMove(); //Money move to winner from loser.
     }
 
-    function getHostSubmitHash() public view returns(bytes32){
-        return hostSubmitHash;
+    // return the game result
+    function getGameResult() public view returns(uint8){
+        return result;
     }
 
-    function getGuestSubmitHash() public view returns(bytes32){
-        return guestSubmitHash;
+    function getHostEthHash() public view returns(bytes32){
+        return hostEthHash;
+    }
+
+    function getGuestEthHash() public view returns(bytes32){
+        return guestEthHash;
+    }
+
+    function getHostClientHash() public view returns(bytes32){
+        return hostClientHash;
+    }
+    function getGuestClientHash() public view returns(bytes32){
+        return guestClientHash;
     }
  
-    function _setHostHash(bytes32 hashValue) private {
+    function _setHostClientHash(bytes32 hashValue) private {
         require(!matching);
-        hostSelectHash = hashValue;
+        hostClientHash = hashValue;
     }
 
-    function _setGuestHash(bytes32 hashValue) private{
+    function _setGuestClientHash(bytes32 hashValue) private{
         require(msg.sender == guestPlayer);
         require(matching);
-        guestSelectHash = hashValue;
+        guestClientHash = hashValue;
     }
 
     function _checkHostHand(uint8 hand, string rndStr) private returns(bool){
         bytes memory concatStr = _concat(bytes32(hand),_stringToBytes32(rndStr));
-        hostSubmitHash = sha256(concatStr);
-        HostSubmit(hand, rndStr, hostSubmitHash);
-        if (hostSubmitHash != hostSelectHash){
+        hostEthHash = getHashValue(concatStr);
+        emit HostSubmit(hand, rndStr, hostEthHash);
+        if (hostEthHash != hostClientHash){
             return false;
         }
         return true;
@@ -95,9 +111,9 @@ contract rps{
 
     function _checkGuestHand(uint8 hand, string rndStr) private returns(bool){
         bytes memory concatStr = _concat(bytes32(hand),_stringToBytes32(rndStr));
-        guestSubmitHash = sha256(concatStr);
-        GuestSubmit(hand, rndStr, guestSubmitHash);
-        if (guestSubmitHash != guestSelectHash){
+        guestEthHash = getHashValue(concatStr);
+        emit GuestSubmit(hand, rndStr, guestEthHash);
+        if (guestEthHash != guestClientHash){
             return false;
         }
         return true;
@@ -123,13 +139,17 @@ contract rps{
         require(result > 0);
         if (result == 1){ //host win
             hostPlayer.transfer(betAmount*2);
+            emit MoneyMove(guestPlayer, hostPlayer, betAmount*2);
         }
         else if (result == 2){ //guest win
             guestPlayer.transfer(betAmount*2);
+            emit MoneyMove(hostPlayer, guestPlayer, betAmount*2);
         }
         else if (result == 3){ //draw
             hostPlayer.transfer(betAmount);
+            emit MoneyBack(hostPlayer, betAmount);
             guestPlayer.transfer(betAmount);
+            emit MoneyBack(guestPlayer, betAmount);
         }    
     }
 
@@ -151,5 +171,9 @@ contract rps{
             afterData := mload(add(source, 32))
         }
         return afterData;
+    }
+
+    function getHashValue(bytes byteA) public pure returns (bytes32){
+       return keccak256(byteA);
     }
 }

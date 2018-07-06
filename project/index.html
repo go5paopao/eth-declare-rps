@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <title>Ethereum RPS game</title>
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js" charset="UTF-8"></script>
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="/app/jsSHA/src/sha256.js" charset="UTF-8"></script>
+    <script type="text/javascript" src="https://cdn.ethers.io/scripts/ethers-v3.min.js" charset="utf-8">
+</script>
+    <script>
+      const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+      const coinbase = web3.eth.coinbase;
+      var abi;
+      var address;
+      var contract;
+      var eventHostSubmit;
+      var eventGuestSubmit;
+      var eventGameResult;
+      var eventMoneyMove;
+      var eventMoneyBack;
+      var hostAddress = web3.eth.accounts[0];
+      var guestAddress = web3.eth.accounts[1];
+      $.getJSON("/build/contracts/rps.json", function(json){
+        var _abi = json["abi"];
+        var _address = json["networks"]["10"]["address"];
+        setContract(_abi, _address);
+      });
+      var hostLocalHash = "";
+      var hostEthHash = "";
+      var guestLocalHash = "";
+      var guestEthHash = "";
+
+      function setContract(_abi, _address){
+        abi = _abi;
+        address = _address;
+        contract = web3.eth.contract(abi).at(address);
+        setEvent();
+      }
+
+      function setEvent() {
+        eventHostSubmit = contract.HostSubmit();
+        eventGuestSubmit = contract.GuestSubmit();
+        eventGameResult = contract.GameResult();
+        eventMoneyMove = contract.MoneyMove();
+        eventMoneyBack = contract.MoneyBack();
+        eventHostSubmit.watch(function (error, result){
+          console.log('host submit event');
+          if (!error)
+            console.log(result);
+        });
+        eventGuestSubmit.watch(function (error, result){
+          console.log('guest submit event');
+          if (!error)
+            console.log(result);
+        });
+        eventGameResult.watch(function (error, result){
+          console.log('game result event');
+          if (!error)
+            console.log(result);
+        });
+        eventMoneyMove.watch(function (error, result){
+          console.log('money move event');
+          if (!error)
+            console.log(result);
+        });
+        eventMoneyBack.watch(function (error, result){
+          console.log('money back event');
+          if (!error)
+            console.log(result);
+        });     
+      }
+      
+      function makeGame() {
+        var rndStr = document.getElementById("hostRndStr").value;
+        var hand;
+        var radios = document.getElementsByName("hostHand");
+        for(var i=0; i<radios.length;i++){
+          if (radios[i].checked) {
+            hand = radios[i].value;
+            break;
+          }
+        }
+        var handByte = numberToBytes32(hand);
+        var rndByte = stringToBytes32(rndStr);
+        var concatStr = bytesConcat(handByte,rndByte);
+        hostLocalHash = contract.getHashValue.call(concatStr);
+        console.log("hostLocalHash:"+hostLocalHash);
+        contract.makeGame.sendTransaction(hostLocalHash,{from:hostAddress, gas:1000000});
+        document.getElementById("showHostLocalHash").innerHTML = hostLocalHash;
+      }
+
+      function joinGame() {
+        var rndStr = document.getElementById("guestRndStr").value;
+        var hand;
+        var radios = document.getElementsByName("guestHand");
+        for(var i=0; i<radios.length;i++){
+          if (radios[i].checked) {
+            hand = radios[i].value;
+            break;
+          }
+        }
+        var handByte = numberToBytes32(hand);
+        var rndByte = stringToBytes32(rndStr);
+        var concatStr = bytesConcat(handByte,rndByte);
+        guestLocalHash = contract.getHashValue.call(concatStr);
+        contract.joinGame.sendTransaction(guestLocalHash,hand,rndStr,{from:guestAddress,gas:1000000});
+        document.getElementById("showGuestLocalHash").innerHTML = guestLocalHash;
+      }
+
+      function hostSubmit(){
+        var rndStr = document.getElementById("hostRndStr").value;
+        var hand;
+        var radios = document.getElementsByName("hostHand");
+        for(var i=0; i<radios.length;i++){
+          if (radios[i].checked) {
+            hand = radios[i].value;
+            break;
+          }
+        }
+        var res = contract.hostSubmitHand.sendTransaction(hand,rndStr,{from:hostAddress,gas:1000000});
+        console.log(res);
+      }
+
+      function getHostEthHash() {
+        var res = contract.getHostSubmitHash.call();
+        console.log("response:"+res);
+        document.getElementById("showHostEthHash").innerHTML = res;
+        return res
+      }
+
+      function getGuestEthHash() {
+        var res = contract.getGuestSubmitHash.call();
+        console.log("response:"+res);
+        document.getElementById("showGuestEthHash").innerHTML = res;
+        return res;
+      }
+
+      function hostGameCheck() {
+        hostEthHash = getHostEthHash();
+        if (hostEthHash == hostLocalHash){
+          console.log("host hash is matched!!");
+          document.getElementById("hostCheckResult").innerHTML = "Hash Check Success!!!"
+        }
+        else{
+          console.log("host hash is not corrected.");
+          document.getElementById("hostCheckResult").innerHTML = "Hash not mach. Host lose..."
+        }
+      }
+
+      function guestGameCheck() {
+        guestEthHash = getGuestEthHash();
+        if (guestEthHash == guestLocalHash){
+          console.log("guest hash is matched!!");
+          document.getElementById("guestCheckResult").innerHTML = "Hash Check Success!!!"
+        }
+        else{
+          console.log("guest hash is not corrected.");
+          document.getElementById("guestCheckResult").innerHTML = "Hash not mach. Guest lose..."
+        }
+      }
+
+      function showResult() {
+        var result = contract.getGameResult.call();
+        document.getElementById("showGameResult").innerHTML = result;
+      }
+
+      function stringToBytes32(_text) {
+        console.log("text:" + _text);
+        console.log("text length:"+ _text.length);
+        var result = ethers.utils.hexlify(ethers.utils.toUtf8Bytes(_text));
+        console.log("result:"+result);
+        console.log("result length:"+result.length);
+        while (result.length < 66) { result += '0'; }
+        if (result.length !== 66) { throw new Error("invalid web3 implicit bytes32"); }
+        return result;
+      }
+
+      function numberToBytes32(_number) {
+        var result = _number;
+        while (result.length < 64) { result = '0'+result; }
+        if (result.length !== 64) { throw new Error("invalid web3 implicit bytes32"); }
+        result = "0x" + result;
+        return result;
+      }
+
+      function bytesConcat(bytesA, bytesB){
+        console.log("bytesA:"+bytesA);
+        console.log("bytesB:"+bytesB);
+        return "0x" + bytesA.substring(2) + bytesB.substring(2);
+      }
+  
+
+    </script>
+  </head>
+
+  <body>
+    <h1>Ethereum RPS(rock,paper,scissors) Game </h1>
+    <h2>Host Player</h2>
+    <h3>New Game</h3>
+    <p>
+      Your Hand 
+      <input type="radio" name="hostHand" value="1" checked="checked">Rock
+      <input type="radio" name="hostHand" value="2">Scissor
+      <input type="radio" name="hostHand" value="3">Paper
+    </p>
+    <p>
+      Random String
+      <input type="text" size=10 id="hostRndStr">
+    </p>
+    <p>
+      <input type="button" value="START" onClick="makeGame()"/>
+    </p>
+    <h3>Game Check</h3>
+    <p>
+      <input type="button" value="Submit&Battle" onClick="hostSubmit()"/>
+    </p>
+   <p>
+      <input type="button" value="Check" onClick="hostGameCheck()"/>
+    </p>
+    <div id = "hostCheckResult"></div>
+
+    <h2>Guest Player</h2>
+    <h3>Join Game</h3>
+    <p>
+      Your Hand 
+      <input type="radio" name="guestHand" value="1" checked="checked">Rock
+      <input type="radio" name="guestHand" value="2">Scissor
+      <input type="radio" name="guestHand" value="3">Paper
+    </p>
+    <p>
+      Random String
+      <input type="text" size=10 id="guestRndStr">
+    </p>
+    <p>
+      <input type="button" value="START" onclick="joinGame()"/>
+    </p>
+    <h3>Game Check</h3>
+      <input type="button" value="Check" onClick="guestGameCheck()"/>
+    <div id = "guestCheckResult"></div>
+    <h2>GameResult</h2>
+      <input type="button" value="ShowResult" onClick="showResult()"/>
+    <div id = "showGameResult"></div>
+    <h4>HostPlayer</h4>
+    <p>
+      <h6>Local Hash</h6>
+      <div id = "showHostLocalHash"></div>
+      <h6>Ethereum Hash</h6>
+      <div id = "showHostEthHash"></div>
+    </p>
+    <h4>GuestPlayer</h4>
+    <p>
+      <h6>Local Hash</h6>
+      <div id = "showGuestLocalHash"></div>
+      <h6>Ethereum Hash</h6>
+      <div id = "showGuestEthHash"></div> 
+   </p>
+  </body>
+</html>
