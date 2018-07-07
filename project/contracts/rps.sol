@@ -4,8 +4,13 @@ contract rps{
     address owner;
     address hostPlayer;
     address guestPlayer;
-    bool matching = false; //after matching, true
     uint8 result = 0; //0:not yet 1:win host 2:win guest 3:draw 
+    // gamePhase
+    //0:before game start
+    //1:after making game(host) 
+    //2:after guest joined game and submit hand(guest)
+    //3:aftr host submited hand and game is finished.
+    uint8 gamePhase = 0; 
     bytes32 hostClientHash;
     bytes32 guestClientHash;
     bytes32 hostEthHash;
@@ -27,19 +32,21 @@ contract rps{
     // call when host player game makes
     // set hostplayer address, betAmount, and hashValue for hand check
     function makeGame(bytes32 hashValue) public payable {
+        require(gamePhase == 0,"required before game making (gamePhase==0)");
         hostPlayer = msg.sender;
         betAmount = msg.value;
         _setHostClientHash(hashValue);
+        gamePhase = 1;
     }
 
     // call when guest player join the game maked by host player
     // 1. set guestplayer address and guest hashvalue for hand check
     // 2. check the hash value by hand and rndStr
     function joinGame(bytes32 hashValue, uint8 hand, string rndStr) public payable{
-        require(msg.sender != hostPlayer); // cannot play with same player
-        require(msg.value == betAmount); // need same bet amount with host
+        require(gamePhase == 1,"required after making game (gamePhase==1)");
+        require(msg.sender != hostPlayer,"cannot play with same player");
+        require(msg.value == betAmount,"require the same amount of betAmount with host");
         guestPlayer = msg.sender;
-        matching = true;
         _setGuestClientHash(hashValue);
         if( _checkGuestHand(hand, rndStr)){
             guestHand = hand;
@@ -47,6 +54,7 @@ contract rps{
         else {
             result = 1; //Guest lose
         }
+        gamePhase = 2;
     }
 
     // call when host player confirm and submit hand
@@ -54,7 +62,8 @@ contract rps{
     // 2. rps battle (host hand and guest hand)
     // 3. money move (loser to winner)
     function hostSubmitHand(uint8 hand, string rndStr) public{
-        require(msg.sender == hostPlayer);
+        require(gamePhase == 2,"required after guest joined");
+        require(msg.sender == hostPlayer,"only hostPlayer");
         if (_checkHostHand(hand, rndStr)){
             hostHand = hand;
         }
@@ -66,12 +75,35 @@ contract rps{
         }
         emit GameResult(result);
         _moneyMove(); //Money move to winner from loser.
+        gamePhase = 3;
     }
 
     // return the game result
     function getGameResult() public view returns(uint8){
+        require(gamePhase == 3,"required after host submited hand.");
         return result;
     }
+
+    // return the game phase
+    function getGamePhase() public view returns(uint8){
+        return gamePhase;
+    }
+
+    function resetGame() public{
+        require(msg.sender == owner);
+        gamePhase = 0;
+        result = 0;
+        hostPlayer = 0x0;
+        guestPlayer = 0x0;
+        hostHand = 0;
+        guestHand = 0;
+        betAmount = 0;
+        hostClientHash = "0x";
+        guestClientHash = "0x";
+        hostEthHash = "0x";
+        guestEthHash = "0x";
+    }
+
 
     function getHostEthHash() public view returns(bytes32){
         return hostEthHash;
@@ -89,13 +121,10 @@ contract rps{
     }
  
     function _setHostClientHash(bytes32 hashValue) private {
-        require(!matching);
         hostClientHash = hashValue;
     }
 
     function _setGuestClientHash(bytes32 hashValue) private{
-        require(msg.sender == guestPlayer);
-        require(matching);
         guestClientHash = hashValue;
     }
 
@@ -136,7 +165,7 @@ contract rps{
     }
 
     function _moneyMove() private {
-        require(result > 0);
+        require(result > 0,"require rps battle is finished");
         if (result == 1){ //host win
             hostPlayer.transfer(betAmount*2);
             emit MoneyMove(guestPlayer, hostPlayer, betAmount*2);

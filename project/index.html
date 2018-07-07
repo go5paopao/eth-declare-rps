@@ -18,6 +18,7 @@
       var eventGameResult;
       var eventMoneyMove;
       var eventMoneyBack;
+      var ownerAddress = web3.eth.accounts[0];
       var hostAddress = web3.eth.accounts[0];
       var guestAddress = web3.eth.accounts[1];
       $.getJSON("/build/contracts/rps.json", function(json){
@@ -122,14 +123,14 @@
       }
 
       function getHostEthHash() {
-        var res = contract.getHostSubmitHash.call();
+        var res = contract.getHostEthHash.call();
         console.log("response:"+res);
         document.getElementById("showHostEthHash").innerHTML = res;
         return res
       }
 
       function getGuestEthHash() {
-        var res = contract.getGuestSubmitHash.call();
+        var res = contract.getGuestEthHash.call();
         console.log("response:"+res);
         document.getElementById("showGuestEthHash").innerHTML = res;
         return res;
@@ -164,6 +165,16 @@
         document.getElementById("showGameResult").innerHTML = result;
       }
 
+      function showGamePhase() {
+        var result = contract.getGamePhase.call();
+        document.getElementById("showGamePhase").innerHTML = result;
+      }
+
+      // reset contract status for retry game 
+      function reset(){
+        contract.resetGame.sendTransaction({from:ownerAddress,gas:1000000});
+      }
+
       function stringToBytes32(_text) {
         console.log("text:" + _text);
         console.log("text length:"+ _text.length);
@@ -188,7 +199,6 @@
         console.log("bytesB:"+bytesB);
         return "0x" + bytesA.substring(2) + bytesB.substring(2);
       }
-  
 
     </script>
   </head>
@@ -240,19 +250,27 @@
     <h2>GameResult</h2>
       <input type="button" value="ShowResult" onClick="showResult()"/>
     <div id = "showGameResult"></div>
-    <h4>HostPlayer</h4>
+    <h2>Reset</h2>
+      <input type="button" value="reset" onClick="reset()"/>
+    <h2>Other</h2>
+    <h4>Hash Value</h4>
+    <h5>HostPlayer</h5>
     <p>
       <h6>Local Hash</h6>
       <div id = "showHostLocalHash"></div>
       <h6>Ethereum Hash</h6>
       <div id = "showHostEthHash"></div>
     </p>
-    <h4>GuestPlayer</h4>
+    <h5>GuestPlayer</h5>
     <p>
       <h6>Local Hash</h6>
       <div id = "showGuestLocalHash"></div>
       <h6>Ethereum Hash</h6>
       <div id = "showGuestEthHash"></div> 
-   </p>
+    </p>
+    <h4>GamePhase</h4>
+    <input type="button" value="ShowPhase" onClick="showGamePhase()"/>
+    <div id = "showGamePhase"></div>
+   
   </body>
 </html>
