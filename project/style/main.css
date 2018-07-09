@@ -1,0 +1,91 @@
+@charset "UTF-8";
+h1{
+	position: relative;
+	display: inline-block;
+	padding: 0 55px;
+}
+
+h1:before, h1:after{
+	content: '';
+	position: absolute;
+	top: 50%;
+	display: inline-block;
+	width: 45px;
+	height: 1px;
+	background-color: black;
+}
+
+h1:before {left:0;}
+h1:after {right: 0;}
+
+h2 {
+	color: #364e96;/*文字色*/
+	padding: 8px 4px;/*上下の余白*/
+	border-top: solid 3px #364e96;/*上線*/
+	border-bottom: solid 3px #364e96;/*下線*/
+}
+
+h3 {
+	padding: 4px 8px;/*上下 左右の余白*/
+	color: #494949;/*文字色*/
+	background: transparent;/*背景透明に*/
+	border-left: solid 5px #7db4e6;/*左線*/
+}
+
+h4 {
+	margin: 4px;
+	padding: 3px 6px;
+	color:#333333;
+}
+
+button, input, select, textarea{
+	font-family: inherit;
+	font-size:100%;
+}
+
+.content table{
+	border:1px solid #FFFFFF;
+	border-collapse: collapse;
+}
+
+.content table th,td{
+	border:1px solid #000000;
+	padding:5px 20px;
+}
+
+.chooseHandArea {
+	padding-bottom:10px;
+	width:400px;
+}
+.inputRndStrArea {
+	padding-top:5px;
+	padding-bottom:10px;
+	width:400px;
+}
+
+.ethCallButton {
+	display:inline-block;
+	font-size:12px;
+	width:200px;
+	height:30px;
+	background-color:#9CA7E2;
+	text-align:center;
+	border-radius:10px;
+}
+
+.hashCheckMessage {
+	color:red;
+	padding:10px;
+	font-style:italic;
+}
+
+.showResult {
+	font-size:24px;
+	color:red;
+	padding:10px;
+}
+
+footer {
+	font-size:6px;
+}
+
