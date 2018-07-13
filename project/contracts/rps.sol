@@ -90,7 +90,7 @@ contract rps{
     }
 
     function resetGame() public{
-        require(msg.sender == owner);
+        //require(msg.sender == owner); //when real, need this reauire
         gamePhase = 0;
         result = 0;
         hostPlayer = 0x0;

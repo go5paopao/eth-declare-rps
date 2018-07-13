@@ -6,10 +6,9 @@
     <link rel="stylesheet" type="text/css" href="style/main.css">
     <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js" charset="UTF-8"></script>
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-    <script type="text/javascript" src="https://cdn.ethers.io/scripts/ethers-v3.min.js" charset="utf-8">
+    <script type="text/javascript" src="https://cdn.ethers.io/scripts/ethers-v3.min.js" charset="utf-8"></script>
     <script type="text/javascript" src="/app/jsSHA/src/sha256.js" charset="UTF-8"></script>
     <script type="text/javascript" src="/main.js" charset="UTF-8"></script>
-</script>
   </head>
 
   <body>
@@ -23,7 +22,11 @@
       <!-- access Ethereum blockchain by host and guest player-->
       <h2>Game Play</h2>
       <h3>Host Player</h3>
-      <h4>1.MakeGame</h4>
+      <p>
+        <input type="button" class="ethCallButton"  value="SetHostAddress" onClick="setHostAddress()"/>
+      </p>
+
+     <h4>1.MakeGame</h4>
       <div class="chooseHandArea">
         <fieldset>
           <legend class="chooseHand">手を選んでください。</legend>
@@ -50,7 +53,10 @@
       </p>
       
       <h3>Guest Player</h3>
-      <h4>2.JoinGame</h4>
+      <p>
+        <input type="button" class="ethCallButton"  value="SetGuestAddress" onClick="setGuestAddress()"/>
+      </p>
+     <h4>2.JoinGame</h4>
       <div class="chooseHandArea">
         <fieldset>
           <legend class="chooseHand">手を選んでください。</legend>
@@ -158,25 +164,53 @@
             </li>
           </ul>
         </li> 
-       <li>
-         <h4>Hostが手を再提出</h4>
-         <ul>
-           <li>HostPlayerが改めて最初に決めた手（ジャンケンの手とランダムな文字列）を提出します。</li>
-           <li>これはHostPlayerが何の手を出したのか、そして手を後出しで変えていないかを確認するためです。</li>
-           <li>1の時点ではGuestPlayerに手がバレないように、ハッシュ値しかブロックチェーンに提出しておらず、ここで初めて手を提出します。</li>
-         </ul>
-       </li>
-       <li>
-         <h4>Gameの終了</h4>
-         <ul>
-           <li>3の終了時点で結果が出ています。</li>
-           <li>ShowResultを押すことでどちらが勝ったのかを確認することができます。</li>
-           <li>ちなみに3の終了時点で両者がbetしていた額の合計をcontractから勝者に送金します。<br>
-           (実質、敗者から勝者に賭け金を送ったことになる。)</li>
-           <li>RESETボタンを押すことで、再度ゲームすることができます。</li>
-         </ul>
-       </li>
-     </ol>
+        <li>
+          <h4>Hostが手を再提出</h4>
+          <ul>
+            <li>HostPlayerが改めて最初に決めた手（ジャンケンの手とランダムな文字列）を提出します。</li>
+            <li>これはHostPlayerが何の手を出したのか、そして手を後出しで変えていないかを確認するためです。</li>
+            <li>1の時点ではGuestPlayerに手がバレないように、ハッシュ値しかブロックチェーンに提出しておらず、ここで初めて手を提出します。</li>
+          </ul>
+        </li>
+        <li>
+          <h4>Gameの終了</h4>
+          <ul>
+            <li>3の終了時点で結果が出ています。</li>
+            <li>ShowResultを押すことでどちらが勝ったのかを確認することができます。</li>
+            <li>ちなみに3の終了時点で両者がbetしていた額の合計をcontractから勝者に送金します。<br>
+            (実質、敗者から勝者に賭け金を送ったことになる。)</li>
+            <li>RESETボタンを押すことで、再度ゲームすることができます。</li>
+          </ul>
+        </li>
+      </ol>
+      <h2>Why complicated?</h2>
+      <p>なんでジャンケンのくせに、こんな手順が多いかを説明します。</p>
+      <h3>課題：シンプルにやると後出しジャンケンが可能になってしまう</h3>
+      <p>dappでは一般的にユーザの操作内容やデータをブロックチェーン上に記録します。</p>
+      <p>じゃんけんの場合、ユーザが出した手（グー、チョキ、パー）はEthereumのブロックチェーン上に記録されます。
+      その結果、先に出したプレーヤー（ここでいうHost）の手は、
+      Guestがブロックチェーンから見た上で勝てる手を出すという、後出しジャンケンが可能になってしまいます。</p>
+      <h3>解決策：ランダム文字列と組み合わせたハッシュ化を活用</h3>
+      <p>後出しジャンケンをさせないために、ランダムな文字列とハッシュ化を使っています。
+      ハッシュ化とは、元のデータからハッシュ値と呼ばれる規則性のない値を計算することで、
+      ハッシュ値から元のデータを逆算するのは、ほぼ不可能と言われています。</p>
+      <p>Hostは、ジャンケンの手とランダム文字列を最初のMakeGameで提出しますが、
+      それらを結合して事前にハッシュ化したデータのみをブロックチェーン上に記録します。
+      こうすることで、GuestPlayerはHostが何の手を出したのか分からず、後出しができなくなります。
+      そしてGuestPlayerが手を提出した後に、Hostハッシュ化する前の手とランダム文字列を提出し、
+      最初のハッシュ値と同じかどうかをチェックし、改竄していないことを確認します。</p>
+      <h3>中央集権的なゲームとの違い</h3>
+      <p>普通にオンラインでジャンケンをする場合でも、それぞれの手を出すタイミングはずれますが、
+      ゲーム運営者のサーバに先に出した手は記録され、後で出す人から何を出したか見えないように出来ます。
+      しかし、一般的なブロックチェーン（パブリックチェーン）の場合、全てデータが公開されているため、
+      これが出来なくなります。それ故、普通のサーバを使ったゲームよりも手順が複雑になっています。</p>
+      <p>ただし、ゲーム運営者のサーバを使う方法は、ゲーム運営者を信用した上での中央集権的なゲームと言えます。
+      例えば、ゲーム運営者がサーバ内部のデータを見た上でGuestとして参加するような不正も可能になりますし、
+      自分のアカウントだけ勝率や掛け金を改竄することも出来てしまいます。</p>
+      <p>もちろん、ゲーム運営者に信用があれば問題ないですし、
+      中央集権型とdappのような非中央集権型の使い分けが今後重要になっていくでしょう。</p>
+      <h3>参考</h3>
+      <a href="https://ethereum.stackexchange.com/questions/9394/how-secure-is-this-rock-paper-scissors-smart-contract">StackExchange: How secure is this Rock Paper Scissors smart contract?</a>
     </div>
     <!-- footer -->
     <footer>
