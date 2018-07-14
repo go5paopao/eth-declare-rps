@@ -26,10 +26,11 @@ h2 {
 }
 
 h3 {
-	padding: 4px 8px;/*上下 左右の余白*/
+	padding: 6px 8px;/*上下 左右の余白*/
 	color: #494949;/*文字色*/
 	background: transparent;/*背景透明に*/
 	border-left: solid 5px #7db4e6;/*左線*/
+	margin-top: 40px;
 }
 
 h4 {
@@ -46,6 +47,7 @@ button, input, select, textarea{
 .content table{
 	border:1px solid #FFFFFF;
 	border-collapse: collapse;
+	margin-top:30px;
 }
 
 .content table th,td{

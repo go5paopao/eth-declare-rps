@@ -11,7 +11,8 @@ var hostAddress = "";
 var guestAddress = "";
 $.getJSON("/build/contracts/rps.json", function(json){
   var _abi = json["abi"];
-  var _address = json["networks"]["3"]["address"]; //json["networks"]["10"]["address"];
+  var _address = json["networks"]["3"]["address"]; //ropsten
+  //var _address = json["networks"]["10"]["address"]; //privateNet
   setContract(_abi, _address);
 });
 var hostLocalHash = "";
@@ -20,9 +21,9 @@ var guestLocalHash = "";
 var guestEthHash = "";
 var resultPattern = {
   0:"This game is not over yet.",
-  1:"Host player Win!!!",
-  2:"Guest Player Win!!!",
-  3:"Draw!!!"
+  1:"Winner: Host player",
+  2:"Winner: Guest Player",
+  3:"Draw!"
 }
 var playerName = { 0:"HostPlayer", 1:"GuestPlayer"};
 
@@ -58,25 +59,20 @@ function setAddress(player){ //player => 0:host 1:guest
     }
     if (player == 0){
       hostAddress = accounts[0];
+      document.getElementById("hostPlayerAddress").innerText = hostAddress;
       console.log("hostAddress:" + hostAddress);
     }
     else if (player == 1){
       guestAddress = accounts[0];
+      document.getElementById("guestPlayerAddress").innerHTML = guestAddress;
       console.log("guestAddress:" + guestAddress);
     }
     else {
       console.error("invalid player args");
     }
-    setAddressTable();
   });
 }
 
-function setAddressTable(){
-  window.onload = function () {
-    document.getElementById("hostPlayerAddress").innerText = hostAddress;
-    document.getElementById("guestPlayerAddress").innerHTML = guestAddress;
-  };      
-}
 
 function setContract(_abi, _address){
   abi = _abi;
@@ -131,9 +127,20 @@ function makeGame() {
   var handByte = numberToBytes32(hand);
   var rndByte = stringToBytes32(rndStr);
   var concatStr = bytesConcat(handByte,rndByte);
-  hostLocalHash = callGetHashValue(concatStr);
-  console.log("hostLocalHash:"+hostLocalHash);
-  contract.makeGame.sendTransaction(hostLocalHash,{from:hostAddress, gas:1000000},(err,res) =>{
+  contract.getHashValue(concatStr,(err,res) => {
+    if(!err){
+      console.log("GetHashValue:"+res);
+      makeGameTransaction(res);
+    }
+    else{
+      console.error(err);
+    }
+  });
+}
+
+function makeGameTransaction(hash){
+  console.log("hostLocalHash:"+hash);
+  contract.makeGame.sendTransaction(hash,{from:hostAddress, gas:1000000},(err,res) =>{
     if(!err){
       console.log("makeGame txId:" + res);
     }
@@ -157,7 +164,18 @@ function joinGame() {
   var handByte = numberToBytes32(hand);
   var rndByte = stringToBytes32(rndStr);
   var concatStr = bytesConcat(handByte,rndByte);
-  guestLocalHash = callGetHashValue(concatStr);
+  contract.getHashValue(concatStr,(err,res) => {
+    if(!err){
+      console.log("GetHashValue:"+res);
+      joinGameTransaction(res,hand,rndStr);
+    }
+    else{
+      console.error(err);
+    }
+  });
+}
+
+function joinGameTransaction(guestLocalHash,hand,rndStr){
   contract.joinGame.sendTransaction(guestLocalHash,hand,rndStr,{from:guestAddress, gas:1000000},(err,res) =>{
     if(!err){
       console.log("joinGame txId:" + res);
@@ -167,6 +185,7 @@ function joinGame() {
     }
   }); 
   document.getElementById("guestLocalHash").innerHTML = guestLocalHash;
+
 }
 
 function hostSubmit(){
@@ -187,30 +206,16 @@ function hostSubmit(){
       console.error(err);
     }
   });
-  console.log(res);
 }
 
-function callGetHashValue(str){
-  var hashValue;
-  contract.getHashValue(str,(err,res) => {
-      if(!err){
-        console.log("callGetHashValue:"+res);
-        hashValue = res;
-      }
-      else{
-        console.error(err);
-        return
-      }
-    });
-  return hashValue
-}
 
-function getHostEthHash() {
+function getHostEthHash(localHash,callback) {
   contract.getHostEthHash((err,res) => {
       if(!err){
         console.log("getHostEthHash:"+res);
         hostEthHash = res;
         document.getElementById("hostEthHash").innerHTML = res;
+        callback(localHash,hostEthHash);
       }
       else{
         console.error(err);
@@ -219,18 +224,19 @@ function getHostEthHash() {
   });
 }
 
-function getGuestEthHash() {
+function getGuestEthHash(localHash,callback) {
   contract.getGuestEthHash((err,res) => {
       if(!err){
         console.log("getGuestEthHash:"+res);
         guestEthHash = res;
+        document.getElementById("guestEthHash").innerHTML = res;
+        callback(localHash,hostEthHash);
       }
       else{
         console.error(err);
         return
       }
   });
-  document.getElementById("guestEthHash").innerHTML = res;
 }
 
 
@@ -247,11 +253,11 @@ function gameCheck(player){ //player => 0:host 1:guest
   var localHash;
   var targetId;
   if (player == 0){
-    ethHash = getHostEthHash();
+    ethHashFunc = getHostEthHash;
     localHash = hostLocalHash;
     targetId = "hostCheckResult";
   } else if (player == 1){
-    ethHash = getGuestEthHash();
+    ethHashFunc = getGuestEthHash;
     localHash = guestLocalHash;
     targetId = "guestCheckResult";
   }
@@ -259,16 +265,19 @@ function gameCheck(player){ //player => 0:host 1:guest
     console.error("invalid args");
     return;
   }
-  console.log("localHash:" + localHash);
-  console.log("ethHash:"+ ethHash);
-  if (ethHash == localHash){
-    console.log(playerName[player] + " hash is matched!!");
-    document.getElementById(targetId).innerHTML = "Hash Check Success!!!";
-  }
-  else{
-    console.log(playerName[player] + " hash is not matched.");
-    document.getElementById(targetId).innerHTML = "Hash not mach. " + playerName[player] + " lose...";
-  }
+  var callbackFunc = function(localHash,ethHash){
+    console.log("localHash:" + localHash);
+    console.log("ethHash:"+ ethHash);
+    if (ethHash == localHash){
+      console.log(playerName[player] + " hash is matched!!");
+      document.getElementById(targetId).innerHTML = "Hash Check Success!!!";
+    }
+    else{
+      console.log(playerName[player] + " hash is not matched.");
+      document.getElementById(targetId).innerHTML = "Hash not mach. " + playerName[player] + " lose...";
+    }
+  };
+  ethHashFunc(localHash,callbackFunc);
 }
 
 function showResult() {
@@ -277,13 +286,13 @@ function showResult() {
     if(!err){
       console.log("ShowGameResult:"+res);
       result = res;
+      document.getElementById("showGameResult").innerHTML = resultPattern[result];
     }
     else{
       console.error(err);
       return
     }
   });
-  document.getElementById("showGameResult").innerHTML = resultPattern[result];
 }
 
 function showGamePhase() {

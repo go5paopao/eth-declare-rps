@@ -21,12 +21,26 @@
       <p>ブロックチェーンの特質を考慮したじゃんけんのため、通常のじゃんけんより手順が複雑です。</p>
       <!-- access Ethereum blockchain by host and guest player-->
       <h2>Game Play</h2>
-      <h3>Host Player</h3>
+
+      <table>
+        <tbody>
+          <tr>
+            <th>HostPlayer address</th>
+            <td id="hostPlayerAddress"> </td>
+          </tr>
+          <tr>
+            <th>GuestPlayer address</th>
+            <td id="guestPlayerAddress"> </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>1.MakeGame (HostPlayer)</h3>
+      <h4>1-1.Set HostPlayerAddress</h4>
       <p>
         <input type="button" class="ethCallButton"  value="SetHostAddress" onClick="setHostAddress()"/>
       </p>
-
-     <h4>1.MakeGame</h4>
+      <h4>1-2.Choose Hand and input Random String</h4>
       <div class="chooseHandArea">
         <fieldset>
           <legend class="chooseHand">手を選んでください。</legend>
@@ -47,16 +61,13 @@
       <p>
         <input class="ethCallButton" type="button" value="MakeGame" onClick="makeGame()"/>
       </p>
-      <h4>3.SubmitHand</h4>
-      <p>
-        <input type="button" class="ethCallButton" value="Submit&Battle" onClick="hostSubmit()"/>
-      </p>
       
-      <h3>Guest Player</h3>
+      <h3>2.JoinGame(GuestPlayer)</h3>
+      <h4>2-1. Set GuestPlayer Address</h4>
       <p>
         <input type="button" class="ethCallButton"  value="SetGuestAddress" onClick="setGuestAddress()"/>
       </p>
-     <h4>2.JoinGame</h4>
+      <h4>2-2. Choose Hand and input Random String</h4>
       <div class="chooseHandArea">
         <fieldset>
           <legend class="chooseHand">手を選んでください。</legend>
@@ -77,7 +88,14 @@
       <p>
         <input class="ethCallButton" type="button" value="JoinGame" onclick="joinGame()"/>
       </p>
-      <h3>Battle Result</h3>
+
+      <h3>3.SubmitHand(HostPlayer)</h3>
+      <p> もしHostPlayerの手かランダム文字列を変えてボタンを押した場合、HostPlayerは負けになります。</p>
+      <p>
+        <input type="button" class="ethCallButton" value="Submit&Battle" onClick="hostSubmit()"/>
+      </p>
+      
+      <h3>4.Confirm Battle Result</h3>
       <div class="showResult" id="showGameResult"></div>
       <p>      
         <input type="button" class="ethCallButton" value="ShowResult" onClick="showResult()"/>
@@ -89,19 +107,6 @@
 
       <!-- Show Status about this game and blockchain -->
       <h2>Status</h2>
-      <h3>Player Address</h3>
-      <table>
-        <tbody>
-          <tr>
-            <th>HostPlayer</th>
-            <td id="hostPlayerAddress"> </td>
-          </tr>
-          <tr>
-            <th>GuestPlayer</th>
-            <td id="guestPlayerAddress"> </td>
-          </tr>
-        </tbody>
-      </table>
       <h3>Submit Hash</h3>
       <table>
         <tbody>
