@@ -9,7 +9,7 @@ contract rps{
     //0:before game start
     //1:after making game(host) 
     //2:after guest joined game and submit hand(guest)
-    //3:aftr host submited hand and game is finished.
+    //3:after host submited hand and game is finished.
     uint8 gamePhase = 0; 
     bytes32 hostClientHash;
     bytes32 guestClientHash;
@@ -19,11 +19,13 @@ contract rps{
     uint8 guestHand;
     uint betAmount;
 
-    event HostSubmit(uint8 hand, string rndStr, bytes32 hash);
-    event GuestSubmit(uint8 hand, string rndStr, bytes32 hash);
-    event GameResult(uint result);
+    event HostMakeGame(address hostAddress, bytes32 submitLocalHash);
+    event HostSubmit(uint8 hand, string rndStr, bytes32 ethHash);
+    event GuestSubmit(uint8 hand, string rndStr, bytes32 ethHash);
+    event GameResult(uint result, uint8 hostHand, uint8 guestHand);
     event MoneyMove(address from, address to, uint sendAmount);
     event MoneyBack(address to, uint backAmount);
+    event ResetGame(address operater);
 
     constructor () public{
         owner = msg.sender;
@@ -37,6 +39,7 @@ contract rps{
         betAmount = msg.value;
         _setHostClientHash(hashValue);
         gamePhase = 1;
+        emit HostMakeGame(hostPlayer, hashValue);
     }
 
     // call when guest player join the game maked by host player
@@ -73,7 +76,7 @@ contract rps{
         if (result == 0){ // if game result is not decided, rps battle start.
             _rpsBattle();
         }
-        emit GameResult(result);
+        emit GameResult(result,hostHand,guestHand);
         _moneyMove(); //Money move to winner from loser.
         gamePhase = 3;
     }
@@ -102,6 +105,7 @@ contract rps{
         guestClientHash = "0x";
         hostEthHash = "0x";
         guestEthHash = "0x";
+        emit ResetGame(msg.sender);
     }
 
 
@@ -149,13 +153,14 @@ contract rps{
     }
 
     function _rpsBattle() private {
-        int diff = hostHand - guestHand;
         // draw
-        if (diff == 0){
+        if (hostHand == guestHand){
             result = 3;
          }
         // win
-        else if (diff == -1 || diff == 2){
+        else if ((hostHand==1&&guestHand==2)
+            || (hostHand==2&&guestHand==3)
+            || (hostHand==3&&guestHand==1)){
             result = 1;
         }
         // lose

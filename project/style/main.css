@@ -34,8 +34,8 @@ h3 {
 }
 
 h4 {
-	margin: 4px;
-	padding: 3px 6px;
+	margin: 4px 1px;
+	padding: 6px 3px;
 	color:#333333;
 }
 
@@ -75,7 +75,7 @@ button, input, select, textarea{
 	border-radius:10px;
 }
 
-.hashCheckMessage {
+.checkMessage {
 	color:red;
 	padding:10px;
 	font-style:italic;
@@ -87,6 +87,17 @@ button, input, select, textarea{
 	padding:10px;
 }
 
+.caution {
+	font-size:14px;
+	color:red;
+	padding:5px;
+	margin-left:20px;
+}
+
+.condition {
+	font-size:15px;
+	padding-left:20px;
+}
 footer {
 	font-size:6px;
 }
