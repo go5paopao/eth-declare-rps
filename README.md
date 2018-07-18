@@ -11,15 +11,15 @@ To avoid that, I change the game procedure.
 
 ## GameProcedure
 1. Deploy and set contract (option)
- - I set default contract, but in single contract multiple people cannot play at the same time.
-+ HostPlayer: Make game with submitting the hash made from rps hand and random string. 
- - In this phase, host player doesn't submit the rps hand so that other people cannot watch the host hand before submitting hand.
- - At the same time, host player deposits the bet money to the contract.
-+ GuestPlayer: Join the game made by host player with submitting the rps hand and random string.
- - At the same time, guest player deposits the bet money to the contract.
-+ HostPlayer: Submit the rps hand and random string which are submitted as hash before.
-+ RPS battle is executed and the contract sends the bet money to the winner.
- - When the game is a draw, the contract will return the bet money to each player. 
+	1. We set default contract, but in single contract multiple people cannot play at the same time.
+1. HostPlayer: Make game with submitting the hash made from rps hand and random string. 
+	1. In this phase, host player doesn't submit the rps hand so that other people cannot watch the host hand before submitting hand.
+	1. At the same time, host player deposits the bet money to the contract.
+1. GuestPlayer: Join the game made by host player with submitting the rps hand and random string.
+	1. At the same time, guest player deposits the bet money to the contract.
+1. HostPlayer: Submit the rps hand and random string which are submitted as hash before.
+1. RPS battle is executed and the contract sends the bet money to the winner.
+	1. When the game is a draw, the contract will return the bet money to each player. 
 
 ## Reference
 - [stackExchange: How secure is this Rock Paper Scissors smart contract?](https://ethereum.stackexchange.com/questions/9394/how-secure-is-this-rock-paper-scissors-smart-contract)
