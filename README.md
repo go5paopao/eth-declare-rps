@@ -1,9 +1,8 @@
 # Ethereum RPS[じゃんけん] (Rock Paper Scissor)
 
-===
-OverView
+---
 
-## Description 
+## Overview 
 - This is Blockchain RPS game in Ethereum.
 - for 2 Players(host and guest) 
  - This game is demo, so you play two roles by yourself.
