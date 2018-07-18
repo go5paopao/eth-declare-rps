@@ -1,27 +1,36 @@
-var web3js; //for MetaMask
-var abi;
-var address;
-var contract;
-var hostAddress = "";
-var guestAddress = "";
-var hostLocalHash = "";
-var hostEthHash = "";
-var guestLocalHash = "";
-var guestEthHash = "";
-var gamePhase = -1;
-var resultPattern = {
+let web3js; //for MetaMask
+let abi;
+let address;
+let byteCode;
+let contract;
+let hostAddress = "";
+let guestAddress = "";
+let hostLocalHash = "";
+let hostEthHash = "";
+let guestLocalHash = "";
+let guestEthHash = "";
+let gamePhase = -1;
+let eventHostMakeGame;
+let eventHostSubmit;
+let eventGuestSubmit;
+let eventGameResult;
+let eventMoneyMove;
+let eventMoneyBack;
+let eventResetGame;
+
+const resultPattern = {
   0:"This game is not over yet.",
   1:"Winner: Host player",
   2:"Winner: Guest Player",
   3:"Draw!"
 }
-var phasePattern = {
+const phasePattern = {
   0:"before playing",
   1:"after makeGame by host",
   2:"after joinGame by guest",
   3:"after submit and battle by host (finish)"
 }
-var playerName = { 0:"HostPlayer", 1:"GuestPlayer"};
+const playerName = { 0:"HostPlayer", 1:"GuestPlayer"};
 
 // init setting
 init();
@@ -39,13 +48,25 @@ function init(){
     dataType: "json"
   })
   .then(function(json){
-    var _abi = json["abi"];
-    var _address = json["networks"]["3"]["address"]; //ropsten
+    abi = json["abi"];
+    address = json["networks"]["3"]["address"]; //ropsten
     //_address = json["networks"]["10"]["address"]; //privateNet
-    return {abi:_abi,address:_address};
+    bytecode = json["bytecode"]; 
   })
-  .then(function(result){
-    contract = web3js.eth.contract(result.abi).at(result.address);
+  .then(web3js.eth.getAccounts(function(err, accounts){
+      if(err){
+        console.log(err);
+        return;
+      }
+      if (accounts.length == 0){
+        console.error("cannot get accounts...please check metamask");
+        document.getElementById("checkLogin").innerHTML = 
+          "MetaMaskにログインしていない可能性があります。ログイン後再度ページを開いてください";
+      }
+    })
+  )
+  .then(function(){
+    contract = web3js.eth.contract(abi).at(address);
     console.log("contract setting complete");
   })
   .then(function(){
@@ -83,10 +104,7 @@ function checkNetwork(){
         document.getElementById('connectNetwork').innerHTML = "接続先:unknown";
       ropstenCheck();
     }
-    if (netId == 3){
-      document.getElementById('checkNetwork').innerHTML = "プレイ可能です";
-    }
-    else{
+    if (netId != 3){
       document.getElementById('checkNetwork').innerHTML = "RopstenNetに接続してください";
     } 
   });
@@ -125,22 +143,7 @@ function setAddress(player){ //player => 0:host 1:guest
   });
 }
 
-
-function setContract(_abi, _address){
-  abi = _abi;
-  address = _address;
-  contract = web3js.eth.contract(abi).at(address);
-  setEvent();
-}
-
 function setEvent() {
-  var eventHostMakeGame;
-  var eventHostSubmit;
-  var eventGuestSubmit;
-  var eventGameResult;
-  var eventMoneyMove;
-  var eventMoneyBack;
-  var eventResetGame;
   eventHostMakeGame = contract.HostMakeGame();
   eventHostSubmit = contract.HostSubmit();
   eventGuestSubmit = contract.GuestSubmit();
@@ -152,7 +155,7 @@ function setEvent() {
     console.log('host makeGame event');
     if (!error){
       console.log(result);
-      var txHash = result["transactionHash"];
+      const txHash = result["transactionHash"];
       showTxStatus(txHash,"makeGameTxStatus");
       showGamePhase();
     }
@@ -161,7 +164,7 @@ function setEvent() {
     console.log('host submit event');
     if (!error)
       console.log(result);
-      var txHash = result["transactionHash"];
+      const txHash = result["transactionHash"];
       showTxStatus(txHash,"hostSubmitTxStatus");
       showGamePhase();
   });
@@ -169,7 +172,7 @@ function setEvent() {
     console.log('guest submit event');
     if (!error)
       console.log(result);
-      var txHash = result["transactionHash"];
+      const txHash = result["transactionHash"];
       showTxStatus(txHash,"joinGameTxStatus");
       showGamePhase();
   });
@@ -192,7 +195,7 @@ function setEvent() {
     console.log('resetGame event');
     if (!error)
       console.log(result);
-      var txHash = result["transactionHash"];
+      const txHash = result["transactionHash"];
       showTxStatus(txHash,"resetTxStatus");
       showGamePhase();
   });
@@ -202,7 +205,7 @@ function showTxStatus(txHash,statusId){
   web3js.eth.getTransactionReceipt(txHash,(txReceiptError,txReceipt)=>{
     if(!txReceiptError){
       console.log(txReceipt);
-      var txStatus = txReceipt["status"];
+      const txStatus = txReceipt["status"];
       if (txStatus == 0){
         console.log("Transaction failed");
         document.getElementById(statusId).innerHTML = "transaction failed";
@@ -215,13 +218,94 @@ function showTxStatus(txHash,statusId){
   });
 }
 
+function showDeployTxStatus(txHash,statusId,contractId){
+  let txStatus = -1;
+  new Promise(function(res, rej) {
+    function loop() {
+      return new Promise(function(resolve, reject) {
+        setTimeout(function() {
+          web3js.eth.getTransactionReceipt(txHash,(txReceiptError,txReceipt)=>{
+            if(!txReceiptError){
+              console.log(txReceipt);
+              if(!txReceipt){
+                console.log("txReceipt null");
+                document.getElementById(contractId).innerHTML = "contract creating...";
+                return; //before node received transaction, txReceipt is null.
+              }
+              txStatus = txReceipt["status"];
+              if (txStatus == 0){
+                console.log("Transaction failed");
+                document.getElementById(statusId).innerHTML = "transaction failed";
+              }
+              else if (txStatus == 1){
+                console.log("Transaction Success!");
+                document.getElementById(statusId).innerHTML = "transaction success";
+                address = txReceipt["contractAddress"];
+                contract = web3js.eth.contract(abi).at(address);
+                console.log("newContract:" + address); 
+                const etherscanURL = "https://ropsten.etherscan.io/address/" + address;
+                console.log(etherscanURL);
+                document.getElementById(contractId).innerHTML 
+                  = `contractAddress:<a target="_blank" href=${etherscanURL}>${address}</a>`;
+              }
+              else{
+                console.log("Transaction Pending..");
+                document.getElementById(statusId).innerHTML = "transaction pending...";
+              }
+            }
+            resolve();
+          });
+        }, 1000);
+      })
+      .then(function(count) {
+        if (txStatus == 0 || txStatus == 1) {
+          res();
+        } else {
+          loop();
+        }
+      });
+    }
+    // 初回実行
+    loop();
+  }).then(function() {
+    // ループ処理が終わったらここにくる
+    console.log("Finish");
+  })
+}
+
+
+function deployAndSetContract(){
+  const deployContract = web3js.eth.contract(abi);
+  web3js.eth.estimateGas({data: bytecode},(err,res)=>{
+    if(!err){
+      const gasEstimate = res;
+      console.log("estimatedGas:"+gasEstimate);
+      deployContract.new({data:bytecode,gas:gasEstimate},function(txErr,txInfo){
+        if(!txErr){
+          console.log(txInfo);
+          const txId = txInfo.transactionHash;
+          const etherscanURL = "https://ropsten.etherscan.io/tx/" + txId;
+          document.getElementById("deployTxInfo").innerHTML 
+            = `txHash:<a target="_blank" href=${etherscanURL}>${txId}</a>`;
+          console.log(txId);
+          showDeployTxStatus(txId,"deployTxStatus","deployContractAddress");
+        }
+        else{
+          console.log("txErr");
+          console.error(txErr);
+        }
+      });
+    }
+  });
+}
+
 function makeGame() {
   if (hostAddress == ""){
     console.error("need to set host address");
     window.alert("HostPlayerのアドレスをセットしてください");
     return;
   }
-  var betAmount = document.getElementById("betAmount").value;
+  const betAmount = document.getElementById("betAmount").value;
   if (betAmount < 0){
     console.error("bet Amount needs more than or equal to 0");
     window.alert("0以上の値を入力して下さい");
@@ -232,18 +316,18 @@ function makeGame() {
     window.alert("ゲームが既に進行しています。続きをするか、RESETをしてください");
     return;
   }
-  var rndStr = document.getElementById("hostRndStr").value;
-  var hand;
-  var radios = document.getElementsByName("hostHand");
-  for(var i=0; i<radios.length;i++){
+  const rndStr = document.getElementById("hostRndStr").value;
+  let hand;
+  const radios = document.getElementsByName("hostHand");
+  for(let i=0; i<radios.length;i++){
     if (radios[i].checked) {
       hand = radios[i].value;
       break;
     }
   }
-  var handByte = numberToBytes32(hand);
-  var rndByte = stringToBytes32(rndStr);
-  var concatStr = bytesConcat(handByte,rndByte);
+  const handByte = numberToBytes32(hand);
+  const rndByte = stringToBytes32(rndStr);
+  const concatStr = bytesConcat(handByte,rndByte);
   contract.getHashValue(concatStr,(err,res) => {
     if(!err){
       console.log("GetHashValue:"+res);
@@ -264,7 +348,7 @@ function makeGameTransaction(hash,betAmount){
     (err,res) =>{
       if(!err){
         console.log("makeGame txId:" + res);
-        var etherscanURL = "https://ropsten.etherscan.io/tx/" + res;
+        const etherscanURL = "https://ropsten.etherscan.io/tx/" + res;
         document.getElementById("makeGameTxInfo").innerHTML 
           = `txHash:<a target="_blank" href=${etherscanURL}>${res}</a>`;
       }
@@ -285,7 +369,7 @@ function joinGame() {
     window.alert("HostPlayerとは別のアドレスをセットしてください");
     return;
   }
-  var betAmount = document.getElementById("betAmount").value;
+  const betAmount = document.getElementById("betAmount").value;
   if (betAmount < 0){
     console.error("bet Amount needs more than or equal to 0");
     window.alert("0以上の値を入力して下さい");
@@ -301,18 +385,18 @@ function joinGame() {
     window.alert("すでにjoinGameをしています。続きを進めるかRESETをしてください。");
     return;
   }
-  var rndStr = document.getElementById("guestRndStr").value;
-  var hand;
-  var radios = document.getElementsByName("guestHand");
-  for(var i=0; i<radios.length;i++){
+  const rndStr = document.getElementById("guestRndStr").value;
+  let hand;
+  const radios = document.getElementsByName("guestHand");
+  for(let i=0; i<radios.length;i++){
     if (radios[i].checked) {
       hand = radios[i].value;
       break;
     }
   }
-  var handByte = numberToBytes32(hand);
-  var rndByte = stringToBytes32(rndStr);
-  var concatStr = bytesConcat(handByte,rndByte);
+  const handByte = numberToBytes32(hand);
+  const rndByte = stringToBytes32(rndStr);
+  const concatStr = bytesConcat(handByte,rndByte);
   contract.getHashValue(concatStr,(err,res) => {
     if(!err){
       console.log("GetHashValue:"+res);
@@ -335,7 +419,7 @@ function joinGameTransaction(guestLocalHash,hand,rndStr,betAmount){
     (err,res) =>{
       if(!err){
         console.log("joinGame txId:" + res);
-        var etherscanURL = "https://ropsten.etherscan.io/tx/" + res;
+        const etherscanURL = "https://ropsten.etherscan.io/tx/" + res;
         document.getElementById("joinGameTxInfo").innerHTML 
           = `txHash:<a target="_blank" href=${etherscanURL}>${res}</a>`;
       }
@@ -361,10 +445,10 @@ function hostSubmit(){
     window.alert("すでにゲームが終了しています。RESETしてやり直してください");
     return;
   }
-  var rndStr = document.getElementById("hostRndStr").value;
-  var hand;
-  var radios = document.getElementsByName("hostHand");
-  for(var i=0; i<radios.length;i++){
+  const rndStr = document.getElementById("hostRndStr").value;
+  let hand;
+  const radios = document.getElementsByName("hostHand");
+  for(let i=0; i<radios.length;i++){
     if (radios[i].checked) {
       hand = radios[i].value;
       break;
@@ -373,7 +457,7 @@ function hostSubmit(){
   contract.hostSubmitHand.sendTransaction(hand,rndStr,{from:hostAddress, gas:1000000},(err,res) =>{
     if(!err){
       console.log("hostSubmitHand txId:" + res);
-      var etherscanURL = "https://ropsten.etherscan.io/tx/" + res;
+      const etherscanURL = "https://ropsten.etherscan.io/tx/" + res;
       document.getElementById("hostSubmitTxInfo").innerHTML 
         = `txHash:<a target="_blank" href=${etherscanURL}>${res}</a>`;
     }
@@ -424,9 +508,9 @@ function guestGameCheck() {
 }
 
 function gameCheck(player){ //player => 0:host 1:guest
-  var ethHash;
-  var localHash;
-  var targetId;
+  let ethHash;
+  let localHash;
+  let targetId;
   if (player == 0){
     ethHashFunc = getHostEthHash;
     localHash = hostLocalHash;
@@ -440,7 +524,7 @@ function gameCheck(player){ //player => 0:host 1:guest
     console.error("invalid args");
     return;
   }
-  var callbackFunc = function(localHash,ethHash){
+  const callbackFunc = function(localHash,ethHash){
     console.log("localHash:" + localHash);
     console.log("ethHash:"+ ethHash);
     if (ethHash == localHash){
@@ -456,7 +540,7 @@ function gameCheck(player){ //player => 0:host 1:guest
 }
 
 function showResult() {
-  var result;
+  let result;
   contract.getGameResult((err,res) => {
     if(!err){
       console.log("ShowGameResult:"+res);
@@ -494,7 +578,7 @@ function reset(){
   contract.resetGame.sendTransaction({from:hostAddress, gas:1000000},(err,res) =>{
     if(!err){
       console.log("resetGame txId:" + res);
-      var etherscanURL = "https://ropsten.etherscan.io/tx/" + res;
+      const etherscanURL = "https://ropsten.etherscan.io/tx/" + res;
       document.getElementById("resetTxInfo").innerHTML 
         = `txHash:<a target="_blank" href=${etherscanURL}>${res}</a>`;
     }
@@ -505,14 +589,14 @@ function reset(){
 }
 
 function stringToBytes32(_text) {
-  var result = ethers.utils.hexlify(ethers.utils.toUtf8Bytes(_text));
+  let result = ethers.utils.hexlify(ethers.utils.toUtf8Bytes(_text));
   while (result.length < 66) { result += '0'; }
   if (result.length !== 66) { throw new Error("invalid web3 implicit bytes32"); }
   return result;
 }
 
 function numberToBytes32(_number) {
-  var result = _number;
+  let result = _number;
   while (result.length < 64) { result = '0'+result; }
   if (result.length !== 64) { throw new Error("invalid web3 implicit bytes32"); }
   result = "0x" + result;

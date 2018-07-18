@@ -73,6 +73,7 @@ button, input, select, textarea{
 	background-color:#9CA7E2;
 	text-align:center;
 	border-radius:10px;
+	margin-bottom:10px;
 }
 
 .checkMessage {

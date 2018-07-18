@@ -28,9 +28,16 @@
       </ul>
       <!-- access Ethereum blockchain by host and guest player-->
       <h2>Game Play</h2>
-      <h4>Network接続状況</h4>
+      <h3>Network接続状況</h3>
       <div class="condition" id="connectNetwork"></div>
       <div class="caution" id="checkNetwork"> </div>
+      <div class="caution" id="checkLogin"> </div>
+      <h3>0.コントラクトの設定</h3>
+      <input type="button" class="ethCallButton" value="Deploy&Set" onClick="deployAndSetContract()"/>
+      <div class="txResult" id="deployTxInfo"> </div>
+      <div class="txResult" id="deployTxStatus"> </div>
+      <div class="txResult" id="deployContractAddress"> </div>
+
       <h4>賭け金</h4>
       <input type="number" id="betAmount" value=0.1>
       ETH
@@ -167,33 +174,31 @@
         <input type="button" class="ethCallButton" value="Check" onClick="showGamePhase()"/>
       </p>
       <h2>Procedure</h2>
-      <ol>
+      <ol start="0">
+        <li>
+          <h4>新規コントラクトのデプロイ・セット(任意)</h4>
+            <ul>
+              <li>新しくデモプレイするために、新規でコントラクトをデプロイし、そのアドレスを設定します。</li>
+              <li>デプロイおよび設定が完了すると「transaction success」と表示されます</li>
+              <li>デフォルトでもコントラクトは設定されているため、こちらの操作は必須ではありません。</li>
+              <li>ただし、デフォルトのコントラクトのままだと、
+                同時に他のユーザがこのページで操作した場合に、正しく動作しなくなるためご注意ください。</li>
+            </ul>
+        </li>
         <li>
           <h4>Hostがゲームを開く</h4>
           <ul>
-            <li>
-              HostPlayerがゲームを開きます。
-            </li>
-            <li>
-              具体的には、ジャンケンの手とランダムな文字列を入力した上でMakeGameをします。
-            </li>
-            <li>
-              MakeGameでは、手を提出すると同時にHostPlayerが資金(ether)をbetします(contractに預ける)。
-            </li>
+            <li>HostPlayerがゲームを開きます。</li>
+            <li>具体的には、ジャンケンの手とランダムな文字列を入力した上でMakeGameをします。</li>
+            <li>MakeGameでは、手を提出すると同時にHostPlayerが資金(ether)をbetします(contractに預ける)。</li>
           </ul>
         </li>
         <li>
           <h4>Guestがゲームに参加</h4>
           <ul>
-            <li>
-              GuestPlayerがゲームに参加します。
-            </li>
-            <li>
-              HostPlayerと同様にジャンケンの手とランダムな文字列を入力した上でJoinGameします。
-            </li>
-            <li>
-              JoinGameでは、MakeGameと同じくGuestPlayerが資金(ether)をbetします(contractに預ける)。
-            </li>
+            <li>GuestPlayerがゲームに参加します。</li>
+            <li>HostPlayerと同様にジャンケンの手とランダムな文字列を入力した上でJoinGameします。</li>
+            <li>JoinGameでは、MakeGameと同じくGuestPlayerが資金(ether)をbetします(contractに預ける)。</li>
           </ul>
         </li> 
         <li>
