@@ -51,7 +51,7 @@ function init(){
     abi = json["abi"];
     address = json["networks"]["3"]["address"]; //ropsten
     //_address = json["networks"]["10"]["address"]; //privateNet
-    bytecode = json["bytecode"]; 
+    bytecode = json["deployedBytecode"];//["bytecode"]; 
   })
   .then(web3js.eth.getAccounts(function(err, accounts){
       if(err){
