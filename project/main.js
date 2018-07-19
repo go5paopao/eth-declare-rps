@@ -51,7 +51,8 @@ function init(){
     abi = json["abi"];
     address = json["networks"]["3"]["address"]; //ropsten
     //_address = json["networks"]["10"]["address"]; //privateNet
-    bytecode = json["deployedBytecode"];//["bytecode"]; 
+    bytecode = json["bytecode"]; 
+    deployedBytecode = json["deployedBytecode"];
   })
   .then(web3js.eth.getAccounts(function(err, accounts){
       if(err){
@@ -295,6 +296,9 @@ function deployAndSetContract(){
           console.error(txErr);
         }
       });
+    }
+    else{
+      console.error(err);
     }
   });
 }
