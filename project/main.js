@@ -248,6 +248,7 @@ function showDeployTxStatus(txHash,statusId,contractId){
                 console.log(etherscanURL);
                 document.getElementById(contractId).innerHTML 
                   = `contractAddress:<a target="_blank" href=${etherscanURL}>${address}</a>`;
+                setEvent();
               }
               else{
                 console.log("Transaction Pending..");
