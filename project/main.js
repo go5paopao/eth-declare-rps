@@ -41,10 +41,12 @@ function init(){
     web3js = new Web3(web3.currentProvider);
   } else {
     console.log("cannot access to provider...");
+    window.alert("MetaMaskに接続できません。MetaMaskをchromeにインストールしてください。");
+    return;
   }
   $.ajax({
     type: "GET",
-    url: "/build/contracts/rps.json",
+    url: "build/contracts/rps.json",
     dataType: "json"
   })
   .then(function(json){
